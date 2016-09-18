@@ -54,10 +54,16 @@ class Handler(FileSystemEventHandler):
     """File system handler."""
     def on_any_event(self, event):
         print >> sys.stderr, "%s" % event
+        if not self.session:
+            return
+
         if isinstance(event, (e.FileCreatedEvent, e.FileModifiedEvent)):
             self.upload_file(event.src_path)
         if isinstance(event, e.FileDeletedEvent):
             self.remove_file(event.src_path)
+        if isinstance(event, e.FileMovedEvent):
+            self.remove_file(event.src_path)
+            self.upload_file(event.dest_path)
 
 class Monitor(object):
     dir_path = None
