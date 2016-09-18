@@ -4,14 +4,15 @@ from sqlalchemy.ext.declarative import declarative_base
 Base = declarative_base()
 
 class File(Base):
-	__tablename__ = 'file'
+    __tablename__ = 'file'
 
-	path = Column(String(2048), primary_key=True)
-	blob = Column(LargeBinary)
-	last_updated = Column(Integer)
+    path = Column(String(2048), primary_key=True)
+    blob = Column(LargeBinary)
+    last_updated = Column(Integer)
 
-	def __repr__(self):
-		return '%s: last updated %s' % (self.path, self.last_updated)
+    def __repr__(self):
+        return ('<File: path:{0}, last_updated:{1}>'
+                .format(self.path, self.last_updated))
 
 class UpdateLog(Base):
     __tablename__ = 'log'
@@ -21,3 +22,6 @@ class UpdateLog(Base):
     last_updated = Column(Integer, index=True)
     deleted = Column(Boolean)
 
+    def __repr__(self):
+        return ('<UpdateLog: id:{0}, path:{1}, last_updated:{2}, deleted:{3}>'
+                .format(self.id, self.path, self.last_updated, self.deleted))
