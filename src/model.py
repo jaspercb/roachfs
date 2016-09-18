@@ -7,7 +7,7 @@ class File(Base):
     __tablename__ = 'file'
 
     path = Column(String(2048), primary_key=True)
-    blob = Column(LargeBinary)
+    blob = Column(String)
     last_updated = Column(Integer)
 
     def __repr__(self):

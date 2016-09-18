@@ -1,7 +1,8 @@
+import base64
+import logging
 import sys
 import os
 import time
-import logging
 
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
@@ -26,7 +27,7 @@ class Handler(FileSystemEventHandler):
 
     def upload_file(self, path):
         with open(path, 'rb') as file:
-            data = file.read()
+            data = base64.b64encode(file.read())
         md = int(os.path.getmtime(path))
 
         self.session.begin()
@@ -53,7 +54,7 @@ class Handler(FileSystemEventHandler):
 
     """File system handler."""
     def on_any_event(self, event):
-        print >> sys.stderr, "%s" % event
+        logging.info("%s", event)
         if not self.session:
             return
 

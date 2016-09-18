@@ -1,3 +1,4 @@
+import base64
 import logging
 import os
 import sys
@@ -36,6 +37,7 @@ class Puller(object):
     def __init__(self, dir_path='.'):
         self.dir_path = dir_path
         self.last_id = 0 # TODO: FIX
+        self.terminate = threading.Event()
 
     def start(self):
         logging.info('Starting puller.')
@@ -46,37 +48,39 @@ class Puller(object):
         logging.info('Started puller.')
 
     def run(self):
-        while True:
-            time.sleep(1)
+        while not self.terminate.wait(1):
             seen_files = set()
             for update_log in self.get_new_update_logs()[::-1]:
                 self.last_id = max(self.last_id, update_log.id)
                 if update_log.path not in seen_files:
                     seen_files.add(update_log.path)
                     if update_log.deleted:
-                        logging.info('would have deleted %s', update_log.path)
-                        #os.remove(update_log.path)
+                        logging.info('deleting %s', update_log.path)
+                        try:
+                            os.remove(update_log.path)
+                        except OSError:
+                            pass
                     else: # New file
                         dirname, file_name = os.path.split(update_log.path)
                         if not os.path.exists(dirname):
-                            logging.info('would have made new dirs: %s', dirname)
-                            #os.makedirs(dirname)
+                            logging.info('making new dir: %s', dirname)
+                            os.makedirs(dirname)
                         with open(update_log.path, 'wb') as f:
                             data = self.pull_latest_file(update_log.path)
-                            logging.info('would have written to %s: %s', update_log.path, data)
-                            #f.write(data)
+                            logging.info('writing to %s: %s', update_log.path,
+                                data)
+                            f.write(base64.b64decode(data.blob))
 
     def get_new_update_logs(self):
         return (self.sess.query(UpdateLog).order_by('last_updated')
                 .filter(UpdateLog.id>self.last_id).all())
-        #return self.sess.query(File).order_by('last_updated').options(load_only('path', 'last_updated')).limit(100).all()
 
     def pull_latest_file(self, file_name):
-        return self.sess.query(File).filter_by(path=file_name).all()
+        return self.sess.query(File).filter_by(path=file_name).first()
 
     def stop(self):
         logging.info('Stopping puller...')
-        self.thread.stop()
+        self.terminate.set()
         self.thread.join()
         self.sess.close()
         logging.info('Stopped puller.')
@@ -89,4 +93,5 @@ if __name__ == '__main__':
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
+        puller.stop()
         puller.stop()
